@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>マクロ計算ツール</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#121826;
+      --muted:#6b7280;
+      --accent:#5b43ff;
+      --border:#e5e7eb;
+      --shadow: 0 10px 30px rgba(17,24,39,.06);
+      --warn:#b45309;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .container{max-width:960px;margin:0 auto;padding:28px 18px}
+    .topbar{display:flex;justify-content:center;align-items:center;margin-bottom:14px}
+    .brand{font-weight:850;letter-spacing:.02em;font-size:16px;color:var(--text)}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:26px;
+      box-shadow: var(--shadow);
+    }
+    h1{margin:0 0 6px 0;font-size:28px}
+    .sub{margin:0 0 18px 0;color:var(--muted);line-height:1.6}
+    .step{margin-top:10px}
+    .hidden{display:none}
+    h2{margin:0 0 10px 0;font-size:18px}
+    h3{margin:0 0 10px 0;font-size:16px}
+
+    .choices{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+    .choice{
+      text-align:left;
+      padding:14px 16px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:#fff;
+      font-weight:750;
+      cursor:pointer;
+      transition: transform .04s ease, box-shadow .08s ease, border-color .08s ease;
+    }
+    .choice:active{transform: translateY(1px)}
+    .choice small{display:block;margin-top:4px;font-weight:600;color:var(--muted)}
+    .choice.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,67,255,.12)}
+
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    @media (max-width: 760px){
+      .grid2,.grid3{grid-template-columns:1fr}
+      h1{font-size:24px}
+    }
+
+    .field{margin-top:14px}
+    label{display:block;font-weight:750;margin-bottom:6px}
+    .help{color:var(--muted);font-weight:600;font-size:12px;line-height:1.6;margin-top:6px}
+
+    input[type="range"]{width:100%}
+    input[type="number"], input[type="text"], input[type="email"], select{
+      width:100%;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      font-size:14px;
+      background:#fff;
+    }
+
+    .seg{display:flex;gap:10px}
+    .seg-btn{
+      flex:1;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:#fff;
+      cursor:pointer;
+      font-weight:800;
+      transition: box-shadow .08s ease, border-color .08s ease;
+    }
+    .seg-btn.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,67,255,.12)}
+
+    .nav{display:flex;justify-content:space-between;gap:12px;margin-top:18px}
+    .btn{
+      padding:12px 16px;
+      border-radius:12px;
+      border:1px solid var(--accent);
+      background:var(--accent);
+      color:#fff;
+      font-weight:850;
+      cursor:pointer;
+      width:100%;
+    }
+    .btn.secondary{border:1px solid var(--border);background:#fff;color:var(--text);font-weight:800}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+
+    .results{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+    @media (max-width: 760px){ .results{grid-template-columns:1fr} }
+
+    .resultBox{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fff}
+    .resultBox .label{color:var(--muted);font-weight:750}
+    .resultBox .value{font-size:28px;font-weight:900;margin-top:4px}
+    .resultBox .subvalue{color:var(--muted);font-weight:700;margin-top:2px}
+
+    hr.soft{border:none;border-top:1px solid var(--border);margin:18px 0}
+
+    .checkbox{display:flex;gap:10px;align-items:flex-start;margin-top:12px;color:var(--muted);font-weight:650;line-height:1.5}
+    .note{color:var(--muted);margin-top:10px;line-height:1.6}
+
+    .inline-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+    .pill{
+      display:inline-flex;
+      gap:6px;
+      align-items:center;
+      padding:6px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      color:var(--muted);
+      font-weight:750;
+      font-size:12px;
+      background:#fff;
+      white-space:nowrap;
+    }
+    .kpi{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .warn{color:var(--warn);font-weight:800;font-size:12px;line-height:1.6;margin-top:10px}
+    .linklike{
+      border:none;background:transparent;color:var(--accent);
+      font-weight:800;padding:0;cursor:pointer;
+      text-decoration:underline;text-underline-offset:3px;
+    }
+    dialog{
+      width:min(760px, 94vw);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:16px;
+      box-shadow: var(--shadow);
+    }
+    dialog::backdrop{background: rgba(17,24,39,.45)}
+    .dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}
+    .dialog-title{font-weight:900}
+    .icon-btn{
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-weight:900;
+    }
+    .small{font-size:12px;color:var(--muted);line-height:1.6}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header class="topbar">
+      <div class="brand">マクロ計算ツール</div>
+    </header>
+
+    <main class="card">
+      <h1>マクロ計算ツール</h1>
+      <p class="sub">
+        目的・体格・活動量に加えて「目標体重」と「期間」から、目標カロリーとPFC（タンパク質・脂質・炭水化物）を算出します。
+        すべてメートル法（cm / kg）で計算します。
+      </p>
+
+      <!-- STEP 1 -->
+      <section class="step" data-step="1">
+        <h2>目的を選択してください</h2>
+        <div class="choices">
+          <button class="choice" type="button" data-goal="perform">
+            パフォーマンスを向上させたい（維持）
+            <small>体重を大きく変えずに、コンディションを整えたい</small>
+          </button>
+          <button class="choice" type="button" data-goal="gain">
+            筋肉を増やしたい（増量）
+            <small>体重を増やしながら筋肉量を増やしたい</small>
+          </button>
+          <button class="choice" type="button" data-goal="lose">
+            体脂肪を減らしたい（減量）
+            <small>体重を落としながら筋肉量を維持したい</small>
+          </button>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section class="step hidden" data-step="2">
+        <h2>基本情報</h2>
+
+        <div class="grid2">
+          <div class="field">
+            <label>性別</label>
+            <div class="seg" role="group" aria-label="性別">
+              <button class="seg-btn" type="button" data-sex="female">女性</button>
+              <button class="seg-btn" type="button" data-sex="male">男性</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>年齢</label>
+            <input id="age" type="number" min="14" max="80" step="1" value="35" />
+            <div class="help">14〜80歳</div>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>身長（cm）</label>
+            <input id="height" type="number" min="120" max="230" step="1" value="170" />
+          </div>
+          <div class="field">
+            <label>体重（kg）</label>
+            <input id="weight" type="number" min="30" max="250" step="0.1" value="70.0" />
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="inline-row">
+            <label style="margin:0">体組成が分かる人向け（任意）</label>
+            <span class="pill">未入力でもOK</span>
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label>筋肉量（kg）</label>
+              <input id="muscleKg" type="number" min="0" max="120" step="0.1" placeholder="例：32.5" />
+              <div class="help">InBody等の「骨格筋量」などを想定（任意）</div>
+            </div>
+            <div class="field">
+              <label>脂肪量（kg）</label>
+              <input id="fatKg" type="number" min="0" max="150" step="0.1" placeholder="例：18.2" />
+              <div class="help">InBody等の「体脂肪量」（任意）</div>
+            </div>
+          </div>
+
+          <div class="help">
+            入力がある場合、推定除脂肪量（体重−脂肪量）や体脂肪率を算出し、減量時のタンパク質を状況に応じて微調整します。
+          </div>
+        </div>
+
+        <div class="nav">
+          <button class="btn secondary" type="button" data-back>戻る</button>
+          <button class="btn" type="button" data-next>次へ</button>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section class="step hidden" data-step="3">
+        <div class="inline-row">
+          <h2 style="margin:0">活動レベルを選んでください</h2>
+          <button class="linklike" type="button" id="openActivityHelp">説明</button>
+        </div>
+
+        <div class="choices">
+          <button class="choice" type="button" data-activity="light">
+            低い
+            <small>座り仕事中心、軽い運動が週1〜3回</small>
+          </button>
+          <button class="choice" type="button" data-activity="moderate">
+            普通
+            <small>週3〜5回の運動、日常でもある程度動く</small>
+          </button>
+          <button class="choice" type="button" data-activity="very">
+            高い
+            <small>週6〜7回の運動、活動量が高い</small>
+          </button>
+          <button class="choice" type="button" data-activity="extra">
+            非常に高い
+            <small>肉体労働＋運動、または1日2回トレーニング</small>
+          </button>
+        </div>
+
+        <div class="nav">
+          <button class="btn secondary" type="button" data-back>戻る</button>
+          <button class="btn" type="button" data-next id="toGoalStep" disabled>次へ</button>
+        </div>
+      </section>
+
+      <!-- STEP 4 -->
+      <section class="step hidden" data-step="4">
+        <h2>目標体重と期間</h2>
+
+        <div class="grid2">
+          <div class="field">
+            <label>目標体重（kg）</label>
+            <input id="goalWeight" type="number" min="30" max="250" step="0.1" placeholder="例：65.0" />
+            <div class="help">維持が目的でも入力できます（同じ体重を入れると維持になります）</div>
+          </div>
+
+          <div class="field">
+            <label>期間</label>
+            <div class="grid2">
+              <input id="durationVal" type="number" min="1" max="365" step="1" value="12" />
+              <select id="durationUnit">
+                <option value="weeks" selected>週間</option>
+                <option value="months">か月</option>
+              </select>
+            </div>
+            <div class="help">目標までの期間。急ぎすぎると必要カロリー差が大きくなります。</div>
+          </div>
+        </div>
+
+        <div class="kpi">
+          <span class="pill" id="deltaPill">体重変化：—</span>
+          <span class="pill" id="ratePill">1週間あたり：—</span>
+        </div>
+
+        <div class="warn" id="rateWarn" style="display:none"></div>
+
+        <div class="nav">
+          <button class="btn secondary" type="button" data-back>戻る</button>
+          <button class="btn" type="button" id="calcBtn" disabled>計算する</button>
+        </div>
+      </section>
+
+      <!-- STEP 5 -->
+      <section class="step hidden" data-step="5">
+        <h2>あなたの目標摂取量（PFC）</h2>
+
+        <div class="results">
+          <div class="resultBox">
+            <div class="label">目標カロリー</div>
+            <div class="value"><span id="calOut">0</span> kcal</div>
+            <div class="subvalue">維持：<span id="tdeeOut">0</span> kcal（推定）</div>
+          </div>
+
+          <div class="resultBox">
+            <div class="label">タンパク質</div>
+            <div class="value"><span id="pOut">0</span> g</div>
+            <div class="subvalue">目安：<span id="pRuleOut">—</span></div>
+          </div>
+
+          <div class="resultBox">
+            <div class="label">脂質</div>
+            <div class="value"><span id="fOut">0</span> g</div>
+            <div class="subvalue">減量は20%・増量は25%（最低0.6g/kgも確保）</div>
+          </div>
+
+          <div class="resultBox">
+            <div class="label">炭水化物</div>
+            <div class="value"><span id="cOut">0</span> g</div>
+            <div class="subvalue">残りを炭水化物に配分</div>
+          </div>
+        </div>
+
+<p class="note">
+  炭水化物と脂質の配分は入れ替え可能。脂質を増やすと炭水化物が減り、脂質を減らすと炭水化物が増える。
+  継続しやすさとトレーニングのパフォーマンスを基準に調整。
+</p>
+
+        <div class="kpi">
+          <span class="pill" id="bwPill">体重：0 kg</span>
+          <span class="pill" id="bfPill">体脂肪率：—</span>
+          <span class="pill" id="reqAdjPill">必要な日次差：— kcal/日</span>
+        </div>
+
+        <div class="warn" id="calWarn" style="display:none"></div>
+
+        <hr class="soft" />
+
+        <h3>解説メールを受け取る（任意）</h3>
+        <p class="note">
+          計算根拠、PFCの調整方法、停滞時の見直し手順をメールで送れます。不要なら入力せずに問題ありません。
+        </p>
+
+        <form id="leadForm" novalidate>
+          <div class="grid2">
+            <div class="field">
+              <label>名</label>
+              <input id="firstName" type="text" autocomplete="given-name" />
+            </div>
+            <div class="field">
+              <label>姓</label>
+              <input id="lastName" type="text" autocomplete="family-name" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>メールアドレス</label>
+            <input id="email" type="email" autocomplete="email" inputmode="email" />
+          </div>
+
+          <label class="checkbox">
+            <input id="consent" type="checkbox" />
+            マクロ解説メールの受信に同意します
+          </label>
+
+          <button class="btn" type="submit">送信</button>
+          <p class="note" id="formMsg"></p>
+        </form>
+
+        <div class="nav">
+          <button class="btn secondary" type="button" data-back>戻る</button>
+          <button class="btn secondary" type="button" id="restart">最初から</button>
+        </div>
+
+        <p class="small" style="margin-top:12px">
+          注意：本ツールは推定モデルです。体重推移（7日平均）を見ながら、最終的には±100〜200kcal単位で微調整するのが現実的です。
+        </p>
+      </section>
+
+      <!-- Activity dialog -->
+      <dialog id="activityDialog" aria-label="活動レベルの説明">
+        <div class="dialog-head">
+          <div class="dialog-title">活動レベルの説明</div>
+          <button class="icon-btn" id="closeActivityHelp" type="button">閉じる</button>
+        </div>
+        <div class="small">
+          <p style="margin:0 0 10px 0">
+            活動レベルは「運動（筋トレ含む）＋日常の歩行・仕事での動き」の合計です。
+            迷う場合はまず「普通」を選び、体重の7日平均の変化で微調整してください。
+          </p>
+          <ul style="margin:0;padding-left:18px">
+            <li><b>低い</b>：座り仕事中心、運動は週1〜3回程度</li>
+            <li><b>普通</b>：週3〜5回の運動、日常でもそこそこ動く</li>
+            <li><b>高い</b>：週6〜7回の運動、活動量が高い</li>
+            <li><b>非常に高い</b>：肉体労働＋運動、または1日2回トレーニング</li>
+          </ul>
+        </div>
+      </dialog>
+
+    </main>
+  </div>
+
+  <script>
+    // =========================
+    // 設定（必要ならここだけ変更）
+    // =========================
+    // 1kgの体重変化を 7700kcal として換算（一般的な目安）
+    const KCAL_PER_KG = 7700;
+
+    // Apps Script（Google Sheets）連携URL：使うならここに貼る（""は残す）
+    // 未設定でもツール自体は動きます（送信だけ無効になります）
+    const LEAD_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbxzMlqh1Ezd75wrKQdul-caZZ1_PZjvbhQRDhYzTuXx9rlZ8nodwoZbqHeAfVmYWTJR/exec";
+
+    // =========================
+    // 状態
+    // =========================
+    const state = {
+      goal: null,            // perform | gain | lose
+      sex: "male",           // male | female
+      age: 35,
+      heightCm: 170,
+      weightKg: 70.0,
+      muscleKg: null,        // optional
+      fatKg: null,           // optional
+      activity: null,        // light | moderate | very | extra
+      goalWeightKg: null,
+      durationDays: 84
+    };
+
+    // =========================
+    // DOM
+    // =========================
+    const steps = [...document.querySelectorAll(".step")];
+
+    const ageEl = document.getElementById("age");
+    const heightEl = document.getElementById("height");
+    const weightEl = document.getElementById("weight");
+    const muscleEl = document.getElementById("muscleKg");
+    const fatEl = document.getElementById("fatKg");
+
+    const goalWeightEl = document.getElementById("goalWeight");
+    const durationValEl = document.getElementById("durationVal");
+    const durationUnitEl = document.getElementById("durationUnit");
+
+    const toGoalStepBtn = document.getElementById("toGoalStep");
+    const calcBtn = document.getElementById("calcBtn");
+    const restartBtn = document.getElementById("restart");
+
+    const deltaPill = document.getElementById("deltaPill");
+    const ratePill = document.getElementById("ratePill");
+    const rateWarn = document.getElementById("rateWarn");
+
+    const calOut = document.getElementById("calOut");
+    const tdeeOut = document.getElementById("tdeeOut");
+    const pOut = document.getElementById("pOut");
+    const fOut = document.getElementById("fOut");
+    const cOut = document.getElementById("cOut");
+    const pRuleOut = document.getElementById("pRuleOut");
+    const bwPill = document.getElementById("bwPill");
+    const bfPill = document.getElementById("bfPill");
+    const reqAdjPill = document.getElementById("reqAdjPill");
+    const calWarn = document.getElementById("calWarn");
+
+    // Activity dialog
+    const activityDialog = document.getElementById("activityDialog");
+    document.getElementById("openActivityHelp").addEventListener("click", () => activityDialog.showModal());
+    document.getElementById("closeActivityHelp").addEventListener("click", () => activityDialog.close());
+
+    // =========================
+    // UI helpers
+    // =========================
+    function showStep(n){
+      steps.forEach(s => s.classList.add("hidden"));
+      const el = document.querySelector(`.step[data-step="${n}"]`);
+      if(el) el.classList.remove("hidden");
+    }
+    function selectButtons(selector, matchFn){
+      document.querySelectorAll(selector).forEach(btn => btn.classList.toggle("selected", matchFn(btn)));
+    }
+
+    // Back/Next
+    document.querySelectorAll("[data-next]").forEach(b => b.addEventListener("click", () => {
+      const current = Number(document.querySelector(".step:not(.hidden)")?.dataset.step || "1");
+      showStep(current + 1);
+    }));
+    document.querySelectorAll("[data-back]").forEach(b => b.addEventListener("click", () => {
+      const current = Number(document.querySelector(".step:not(.hidden)")?.dataset.step || "1");
+      showStep(Math.max(1, current - 1));
+    }));
+
+    // =========================
+    // 入力反映
+    // =========================
+    ageEl.addEventListener("input", () => state.age = clampInt(ageEl.value, 14, 80, 35));
+    heightEl.addEventListener("input", () => state.heightCm = clampInt(heightEl.value, 120, 230, 170));
+    weightEl.addEventListener("input", () => state.weightKg = clampFloat(weightEl.value, 30, 250, 70.0));
+
+    muscleEl.addEventListener("input", () => {
+      const v = muscleEl.value.trim();
+      state.muscleKg = v === "" ? null : clampFloat(v, 0, 120, null);
+    });
+    fatEl.addEventListener("input", () => {
+      const v = fatEl.value.trim();
+      state.fatKg = v === "" ? null : clampFloat(v, 0, 150, null);
+    });
+
+    goalWeightEl.addEventListener("input", () => {
+      const v = goalWeightEl.value.trim();
+      state.goalWeightKg = v === "" ? null : clampFloat(v, 30, 250, null);
+      refreshGoalPreview();
+      refreshCalcButtonState();
+    });
+
+    durationValEl.addEventListener("input", () => {
+      refreshGoalPreview();
+      refreshCalcButtonState();
+    });
+    durationUnitEl.addEventListener("change", () => {
+      refreshGoalPreview();
+      refreshCalcButtonState();
+    });
+
+    function refreshCalcButtonState(){
+      const ok = Boolean(state.goal && state.activity && state.goalWeightKg && state.durationDays >= 7);
+      calcBtn.disabled = !ok;
+    }
+
+    function refreshGoalPreview(){
+      const gw = parseMaybe(goalWeightEl.value);
+      const dVal = parseMaybe(durationValEl.value);
+      const unit = durationUnitEl.value;
+
+      if (!gw || !dVal){
+        deltaPill.textContent = "体重変化：—";
+        ratePill.textContent = "1週間あたり：—";
+        rateWarn.style.display = "none";
+        state.goalWeightKg = gw ? gw : null;
+        state.durationDays = 0;
+        return;
+      }
+
+      const days = unit === "months" ? Math.round(dVal * 30.44) : Math.round(dVal * 7);
+      state.durationDays = days;
+
+      const delta = gw - state.weightKg; // +: gain, -: lose
+      const perWeek = (delta / days) * 7;
+
+      deltaPill.textContent = `体重変化：${fmtSigned(delta)} kg`;
+      ratePill.textContent = `1週間あたり：${fmtSigned(perWeek)} kg`;
+
+      // 警告（極端なペース）
+      // 一般的目安：減量 0.25〜1.0%/週、増量 0.1〜0.5%/週
+      const bw = Math.max(1, state.weightKg);
+      const pctPerWeek = Math.abs(perWeek) / bw * 100;
+
+      let msg = "";
+      if (delta < 0){ // lose
+        if (pctPerWeek > 1.2) msg = "ペースが速めです。筋肉維持が難しくなる可能性があります。期間を伸ばすか、目標体重を調整してください。";
+      } else if (delta > 0){ // gain
+        if (pctPerWeek > 0.8) msg = "ペースが速めです。脂肪が増えやすくなります。期間を伸ばすか、目標体重を調整してください。";
+      } else {
+        msg = "";
+      }
+
+      if (msg){
+        rateWarn.textContent = msg;
+        rateWarn.style.display = "block";
+      } else {
+        rateWarn.style.display = "none";
+      }
+    }
+
+    // =========================
+    // 目的・性別・活動量
+    // =========================
+    document.querySelectorAll(".choice[data-goal]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.goal = btn.dataset.goal;
+        selectButtons('.choice[data-goal]', b => b.dataset.goal === state.goal);
+        showStep(2);
+      });
+    });
+
+    document.querySelectorAll(".seg-btn[data-sex]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.sex = btn.dataset.sex;
+        selectButtons('.seg-btn[data-sex]', b => b.dataset.sex === state.sex);
+      });
+    });
+
+    document.querySelectorAll(".choice[data-activity]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.activity = btn.dataset.activity;
+        selectButtons('.choice[data-activity]', b => b.dataset.activity === state.activity);
+        toGoalStepBtn.disabled = false;
+      });
+    });
+
+    toGoalStepBtn.addEventListener("click", () => {
+      // 維持の場合のUX：目標体重が空なら現在体重を自動セット
+      if (!goalWeightEl.value.trim()){
+        goalWeightEl.value = String(state.weightKg.toFixed(1));
+        state.goalWeightKg = state.weightKg;
+      }
+      refreshGoalPreview();
+      refreshCalcButtonState();
+      showStep(4);
+    });
+
+    // =========================
+    // 計算ロジック
+    // =========================
+    function getActivityMultiplier(key){
+      const map = { light: 1.375, moderate: 1.55, very: 1.725, extra: 1.9 };
+      return map[key] ?? 1.55;
+    }
+
+    // Mifflin-St Jeor (metric)
+    function calcBMR({sex, age, heightCm, weightKg}){
+      if(sex === "male") return 10*weightKg + 6.25*heightCm - 5*age + 5;
+      return 10*weightKg + 6.25*heightCm - 5*age - 161;
+    }
+
+    // 基本のタンパク質 g/kg（ユーザー指定）
+    function baseProteinPerKg(goal){
+      if (goal === "lose") return 2.0;
+      if (goal === "gain") return 1.8;
+      return 1.8;
+    }
+
+    // 体組成が分かる場合の微調整（任意）
+    // 要件：「それに合わせてタンパク質量はカロリーを変えて」
+    // 実装：減量で、(1) 体脂肪率が低め、または (2) 目標カロリーが低い場合にタンパク質を少し上げる
+    function adjustProteinPerKgIfBodyComp(goal, sex, bwKg, fatKg, targetCals){
+      let ppk = baseProteinPerKg(goal);
+      if (fatKg == null) return ppk;
+
+      const lbm = Math.max(1, bwKg - fatKg);
+      const bfPct = (fatKg / Math.max(1, bwKg)) * 100;
+
+      // 低カロリー判定：kcal / kg LBM
+      const kcalPerKgLBM = targetCals / lbm;
+
+      if (goal === "lose"){
+        const lowBf = (sex === "male" && bfPct < 15) || (sex === "female" && bfPct < 23);
+        const lowCals = kcalPerKgLBM < 25; // かなり攻めた減量
+        if (lowBf || lowCals) ppk += 0.2; // 2.2g/kg相当へ寄せる
+      }
+
+      // 増量/維持は原則そのまま（脂質/炭水化物で調整したい人が多いため）
+      return clampFloat(ppk, 1.4, 2.4, ppk);
+    }
+
+    // 脂質の目安（g/kg体重）
+    // 減量: 0.7 / 維持: 0.8 / 増量: 0.9 を初期値とし、最低 0.6 は確保
+    function fatPerKg(goal){
+      if (goal === "lose") return 0.7;
+      if (goal === "gain") return 0.9;
+      return 0.8;
+    }
+function fatPercent(goal){
+  if (goal === "lose") return 0.20; // 減量：20%
+  if (goal === "gain") return 0.25; // 増量：25%
+  return 0.25; // 維持：25%（必要なら0.22〜0.30などに調整可）
+}
+
+    // =========================
+    // 計算実行
+    // =========================
+    calcBtn.addEventListener("click", () => {
+      const bw = state.weightKg;
+      const gw = state.goalWeightKg;
+      const days = state.durationDays;
+
+      // 安全確認
+      if (!state.goal || !state.activity || !gw || !days || days < 7) return;
+
+      const bmr = calcBMR({ sex: state.sex, age: state.age, heightCm: state.heightCm, weightKg: bw });
+      const tdee = bmr * getActivityMultiplier(state.activity);
+
+      // 期間から必要な日次カロリー差を算出
+      // deltaKg = goal - current
+      const deltaKg = gw - bw;
+      const requiredDailyDelta = (deltaKg * KCAL_PER_KG) / days; // + surplus, - deficit
+      const calTargetRaw = tdee + requiredDailyDelta;
+
+      // 表示用
+      const bfPct = (state.fatKg != null) ? (state.fatKg / Math.max(1, bw) * 100) : null;
+
+      // タンパク質（まずはcalTargetRawが必要）
+      let ppk = baseProteinPerKg(state.goal);
+      ppk = adjustProteinPerKgIfBodyComp(state.goal, state.sex, bw, state.fatKg, calTargetRaw);
+
+      let proteinG = bw * ppk;
+
+      // 脂質
+     // 脂質（総カロリー比）
+// 減量：20% / 増量：25% / 維持：25%
+let fatKcal = calTargetRaw * fatPercent(state.goal);
+let fatG = fatKcal / 9;
+
+// 最低脂質：0.6g/kgは確保
+fatG = Math.max(fatG, bw * 0.6);
+fatKcal = fatG * 9;
+
+
+      // 炭水化物（残り）
+      // kcal換算：P=4, C=4, F=9
+      const proteinKcal = proteinG * 4;
+
+      // 目標カロリーが極端に低いとき、Cがマイナスになり得るので最低値を確保しつつ再配分
+      let calTarget = calTargetRaw;
+      let carbKcal = calTarget - (proteinKcal + fatKcal);
+
+      // 最低炭水化物：50g/日を確保（健康/運用上の下限として）
+      const minCarbG = 50;
+      const minCarbKcal = minCarbG * 4;
+
+      if (carbKcal < minCarbKcal){
+        // まず脂質を下げる（最低 0.6g/kg を下回らない）
+        const minFatG = bw * 0.6;
+        const currentMinFatKcal = minFatG * 9;
+        const possibleFatKcal = Math.max(currentMinFatKcal, fatKcal);
+        const needKcal = proteinKcal + minCarbKcal + currentMinFatKcal;
+
+        // calTargetが低すぎる場合は、calTargetを持ち上げる（警告表示）
+        if (calTarget < needKcal){
+          calTarget = needKcal;
+        }
+
+        // 脂質を最低まで落としてCを確保
+        fatG = minFatG;
+        carbKcal = calTarget - (proteinKcal + fatG * 9);
+      }
+
+      let carbG = Math.max(0, carbKcal / 4);
+
+      // 丸め
+      const calDisp = Math.round(calTarget);
+      const tdeeDisp = Math.round(tdee);
+      const pDisp = Math.round(proteinG);
+      const fDisp = Math.round(fatG);
+      const cDisp = Math.round(carbG);
+
+      // 出力
+      calOut.textContent = String(calDisp);
+      tdeeOut.textContent = String(tdeeDisp);
+      pOut.textContent = String(pDisp);
+      fOut.textContent = String(fDisp);
+      cOut.textContent = String(cDisp);
+
+      bwPill.textContent = `体重：${bw.toFixed(1)} kg`;
+      bfPill.textContent = bfPct == null ? "体脂肪率：—" : `体脂肪率：${bfPct.toFixed(1)}%`;
+      reqAdjPill.textContent = `必要な日次差：${fmtSigned(Math.round(requiredDailyDelta))} kcal/日`;
+
+      const ruleText = `${ppk.toFixed(1)} g/kg（${state.goal === "lose" ? "減量" : state.goal === "gain" ? "増量" : "維持"}）`;
+      pRuleOut.textContent = ruleText;
+
+      // 警告：必要日次差が大きい/目標カロリーが危険域
+      calWarn.style.display = "none";
+      calWarn.textContent = "";
+
+      const absDaily = Math.abs(requiredDailyDelta);
+      const pctTdee = absDaily / Math.max(1, tdee) * 100;
+
+      const warnMsgs = [];
+      if (absDaily > 1000 || pctTdee > 30){
+        warnMsgs.push("設定がかなり攻めています。期間を伸ばすか、目標体重を調整するのを推奨します。");
+      }
+      // ざっくり安全域（個人差あり）：男性 1500kcal未満・女性 1200kcal未満は警告
+      if (state.sex === "male" && calDisp < 1500) warnMsgs.push("目標カロリーが低めです（男性で1500kcal未満）。体調やパフォーマンス低下に注意してください。");
+      if (state.sex === "female" && calDisp < 1200) warnMsgs.push("目標カロリーが低めです（女性で1200kcal未満）。体調やパフォーマンス低下に注意してください。");
+
+      if (warnMsgs.length){
+        calWarn.textContent = warnMsgs.join(" ");
+        calWarn.style.display = "block";
+      }
+
+      showStep(5);
+    });
+
+    restartBtn.addEventListener("click", () => window.location.reload());
+
+    // =========================
+    // リード保存（Google Sheets）
+    // =========================
+    const leadForm = document.getElementById("leadForm");
+    const formMsg = document.getElementById("formMsg");
+
+   leadForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const consent = document.getElementById("consent").checked;
+  if (!consent) {
+    formMsg.textContent = "同意チェックを入れてください。";
+    return;
+  }
+
+  if (!LEAD_ENDPOINT_URL || LEAD_ENDPOINT_URL.includes("PASTE_")) {
+    formMsg.textContent = "送信先URLが未設定です。Apps ScriptのWebアプリURL（.../exec）を貼り付けてください。";
+    return;
+  }
+
+  const payload = {
+    timestamp: new Date().toISOString(),
+    firstName: document.getElementById("firstName").value || "",
+    lastName: document.getElementById("lastName").value || "",
+    email: document.getElementById("email").value || "",
+    goal: state.goal || "",
+    sex: state.sex || "",
+    age: String(state.age || ""),
+    height_cm: String(state.heightCm || ""),
+    weight_kg: String(state.weightKg || ""),
+    smm_kg: state.smmKg == null ? "" : String(state.smmKg),
+    fat_kg: state.fatKg == null ? "" : String(state.fatKg),
+    activity: state.activity || "",
+    goal_weight_kg: String(state.goalWeightKg || ""),
+    duration_days: String(state.durationDays || ""),
+    calories_target_kcal: String(Number(calOut.textContent || 0)),
+    tdee_estimate_kcal: String(Number(tdeeOut.textContent || 0)),
+    protein_g: String(Number(pOut.textContent || 0)),
+    fat_g: String(Number(fOut.textContent || 0)),
+    carbs_g: String(Number(cOut.textContent || 0)),
+  };
+
+  postToAppsScriptForm(LEAD_ENDPOINT_URL, payload);
+  formMsg.textContent = "送信しました。";
+  leadForm.reset();
+});
+
+function postToAppsScriptForm(url, data) {
+  let iframe = document.getElementById("hidden_iframe");
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.name = "hidden_iframe";
+    iframe.id = "hidden_iframe";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+  }
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = url;
+  form.target = "hidden_iframe";
+
+  Object.entries(data).forEach(([k, v]) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = k;
+    input.value = String(v ?? "");
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+}
+
+
+    // =========================
+    // 小物
+    // =========================
+    function clampInt(v, min, max, fallback){
+      const n = Number(v);
+      if (!Number.isFinite(n)) return fallback;
+      return Math.max(min, Math.min(max, Math.round(n)));
+    }
+    function clampFloat(v, min, max, fallback){
+      const n = Number(v);
+      if (!Number.isFinite(n)) return fallback;
+      return Math.max(min, Math.min(max, n));
+    }
+    function parseMaybe(v){
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+    function fmtSigned(n){
+      const val = (typeof n === "number") ? n : Number(n);
+      if (!Number.isFinite(val)) return "—";
+      const s = Math.round(val * 10) / 10;
+      return (s > 0 ? "+" : "") + s.toString();
+    }
+
+    // 初期化
+    selectButtons('.seg-btn[data-sex]', b => b.dataset.sex === state.sex);
+    refreshGoalPreview();
+  </script>
+</body>
+</html>
