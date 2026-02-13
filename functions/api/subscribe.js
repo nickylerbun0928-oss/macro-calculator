@@ -1,6 +1,8 @@
 export async function onRequestPost({ request, env }) {
+  console.log("subscribe hit", request.method, request.url);
   try {
     const body = await request.json();
+    console.log("subscribe body", body);
 
     const email = String(body.email || "").trim().toLowerCase();
     if (!email) return json({ ok: false, message: "Missing email" }, 400);
